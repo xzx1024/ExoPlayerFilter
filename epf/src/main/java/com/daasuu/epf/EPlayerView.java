@@ -53,6 +53,14 @@ public class EPlayerView extends GLSurfaceView implements VideoListener {
         renderer.setGlFilter(glFilter);
     }
 
+    public void setInvert(boolean xInvertState, boolean yInvertState) {
+        renderer.setInvert(xInvertState, yInvertState);
+    }
+
+    public void setDegrees(int degrees) {
+        renderer.setDegrees(degrees);
+    }
+
     public void setPlayerScaleType(PlayerScaleType playerScaleType) {
         this.playerScaleType = playerScaleType;
         requestLayout();
@@ -74,6 +82,8 @@ public class EPlayerView extends GLSurfaceView implements VideoListener {
                 break;
             case RESIZE_FIT_HEIGHT:
                 viewWidth = (int) (measuredHeight * videoAspect);
+                break;
+            default:
                 break;
         }
 

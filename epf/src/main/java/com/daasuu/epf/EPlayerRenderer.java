@@ -48,6 +48,15 @@ class EPlayerRenderer extends EFrameBufferObjectRenderer implements SurfaceTextu
     private final EPlayerView glPreview;
 
     private float aspectRatio = 1f;
+    private float aspectRatio2 = 1f;
+    private int width;
+    private int height;
+    private boolean yInvertState = false;
+    private boolean xInvertState = false;
+    /**
+     * 旋转角度，只接受0,90,180,270,360五个值
+     */
+    private int degrees = 0;
 
     private SimpleExoPlayer simpleExoPlayer;
 
@@ -73,6 +82,29 @@ class EPlayerRenderer extends EFrameBufferObjectRenderer implements SurfaceTextu
                 glPreview.requestRender();
             }
         });
+    }
+
+    void setInvert(boolean xInvertState, boolean yInvertState) {
+        this.xInvertState = xInvertState;
+        this.yInvertState = yInvertState;
+        glPreview.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                glPreview.requestRender();
+            }
+        });
+    }
+
+    void setDegrees(int degrees) {
+        if (degrees == 0 || degrees == 90 || degrees == 180 || degrees == 270 || degrees == 360) {
+            this.degrees = degrees;
+            glPreview.queueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    glPreview.requestRender();
+                }
+            });
+        }
     }
 
     @Override
@@ -123,6 +155,8 @@ class EPlayerRenderer extends EFrameBufferObjectRenderer implements SurfaceTextu
     @Override
     public void onSurfaceChanged(final int width, final int height) {
         Log.d(TAG, "onSurfaceChanged width = " + width + "  height = " + height);
+        this.width = width;
+        this.height = height;
         filterFramebufferObject.setup(width, height);
         previewFilter.setFrameSize(width, height);
         if (glFilter != null) {
@@ -130,6 +164,7 @@ class EPlayerRenderer extends EFrameBufferObjectRenderer implements SurfaceTextu
         }
 
         aspectRatio = (float) width / height;
+        aspectRatio2 = (float) height / width;
         Matrix.frustumM(ProjMatrix, 0, -aspectRatio, aspectRatio, -1, 1, 5, 7);
         Matrix.setIdentityM(MMatrix, 0);
     }
@@ -162,15 +197,40 @@ class EPlayerRenderer extends EFrameBufferObjectRenderer implements SurfaceTextu
 
         Matrix.multiplyMM(MVPMatrix, 0, VMatrix, 0, MMatrix, 0);
         Matrix.multiplyMM(MVPMatrix, 0, ProjMatrix, 0, MVPMatrix, 0);
-
+        if (degrees == 90 || degrees == 180 || degrees == 270) {
+            //设置画面旋转,显示比例还不对
+            Matrix.rotateM(MVPMatrix, 0, degrees, 0, 0, 1);
+            //缩放
+            if (degrees == 90 || degrees == 270) {
+                Matrix.scaleM(MVPMatrix, 0, aspectRatio2, aspectRatio2, aspectRatio2);
+            }
+        }
+        //对称变换处理，Y对称
+        if (yInvertState) {
+            Matrix.multiplyMM(MVPMatrix, 0, MVPMatrix, 0, invertYMatrix, 0);
+        }
+        // X对称
+        if (xInvertState) {
+            Matrix.multiplyMM(MVPMatrix, 0, MVPMatrix, 0, invertXMatrix, 0);
+        }
+        //绘制画面
         previewFilter.draw(texName, MVPMatrix, STMatrix, aspectRatio);
-
+        //绘制滤镜
         if (glFilter != null) {
             fbo.enable();
             GLES20.glClear(GL_COLOR_BUFFER_BIT);
             glFilter.draw(filterFramebufferObject.getTexName(), fbo);
         }
     }
+
+    private float[] invertYMatrix = new float[]{1f, 0f, 0f, 0f,
+            0f, -1f, 0f, 0f,
+            0f, 0f, 1f, 0f,
+            0f, 0f, 0f, 1f};
+    private float[] invertXMatrix = new float[]{-1f, 0f, 0f, 0f,
+            0f, 1f, 0f, 0f,
+            0f, 0f, 1f, 0f,
+            0f, 0f, 0f, 1f};
 
     @Override
     public synchronized void onFrameAvailable(final SurfaceTexture previewTexture) {

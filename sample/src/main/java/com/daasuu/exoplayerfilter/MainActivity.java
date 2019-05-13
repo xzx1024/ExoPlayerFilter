@@ -2,23 +2,32 @@ package com.daasuu.exoplayerfilter;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 
 import com.daasuu.epf.EPlayerView;
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
@@ -34,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private EPlayerView ePlayerView;
     private SimpleExoPlayer player;
     private Button button;
+    private ImageButton invertYMatrix, invertXMatrix, rotateRight, rotateLeft;
     private SeekBar seekBar;
     private PlayerTimer playerTimer;
 
@@ -64,9 +74,75 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private int degrees = 0;
+    private boolean xInvertState = false;
+    private boolean yInvertState = false;
+
     private void setUpViews() {
         // play pause
         button = (Button) findViewById(R.id.btn);
+        invertYMatrix = (ImageButton) findViewById(R.id.invertYMatrix);
+        invertXMatrix = (ImageButton) findViewById(R.id.invertXMatrix);
+        rotateRight = (ImageButton) findViewById(R.id.rotateRight);
+        rotateLeft = (ImageButton) findViewById(R.id.rotateLeft);
+        rotateRight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ePlayerView != null) {
+                    degrees += 90;
+                    if (degrees > 360) {
+                        degrees = 90;
+                    }
+                    ePlayerView.setDegrees(degrees);
+                }
+            }
+        });
+        rotateLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ePlayerView != null) {
+                    switch (degrees) {
+                        case 0:
+                            degrees = 270;
+                            break;
+                        case 90:
+                            degrees = 0;
+                            break;
+                        case 180:
+                            degrees = 90;
+                            break;
+                        case 270:
+                            degrees = 180;
+                            break;
+                        case 360:
+                            degrees = 270;
+                            break;
+                        default:
+                            break;
+
+                    }
+                    ePlayerView.setDegrees(degrees);
+                }
+            }
+        });
+        invertXMatrix.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ePlayerView != null) {
+                    xInvertState = !xInvertState;
+                    ePlayerView.setInvert(xInvertState, yInvertState);
+                }
+            }
+        });
+        invertYMatrix.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ePlayerView != null) {
+                    yInvertState = !yInvertState;
+                    ePlayerView.setInvert(xInvertState, yInvertState);
+                }
+            }
+        });
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -139,6 +215,61 @@ public class MainActivity extends AppCompatActivity {
         // Prepare the player with the source.
         player.prepare(mediaSource);
         player.setPlayWhenReady(true);
+        player.addListener(new Player.EventListener() {
+            @Override
+            public void onTimelineChanged(Timeline timeline, @Nullable Object manifest, int reason) {
+
+            }
+
+            @Override
+            public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
+
+            }
+
+            @Override
+            public void onLoadingChanged(boolean isLoading) {
+
+            }
+
+            @Override
+            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                if (playWhenReady && playbackState == Player.STATE_ENDED) {
+                    player.seekTo(0);
+                    player.setPlayWhenReady(true);
+                }
+                Log.e("AAA", playWhenReady + "||" + playbackState);
+            }
+
+            @Override
+            public void onRepeatModeChanged(int repeatMode) {
+
+            }
+
+            @Override
+            public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+
+            }
+
+            @Override
+            public void onPlayerError(ExoPlaybackException error) {
+
+            }
+
+            @Override
+            public void onPositionDiscontinuity(int reason) {
+
+            }
+
+            @Override
+            public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
+
+            }
+
+            @Override
+            public void onSeekProcessed() {
+
+            }
+        });
 
     }
 
